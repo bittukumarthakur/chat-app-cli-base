@@ -1,6 +1,6 @@
 const { it, describe } = require("node:test");
 const assert = require("assert");
-const { connectUser, sendMessage } = require("../src/chat-app");
+const { connectUser, sendMessage, onMessage } = require("../src/chat-app");
 
 describe("connectUser", () => {
   it("should prompt the user to enter their name", (context) => {
@@ -33,6 +33,17 @@ describe("sendMessage", () => {
 
     sendMessage(message, "bittu", users);
     const sentMsg = swagato.socket.write.mock.calls[0].arguments[0];
-    assert.strictEqual(sentMsg, "what's up");
+    assert.strictEqual(sentMsg, "bittu: what's up");
   });
+
+  describe("onMessage", () => {
+
+    it("should remember messages when receiver not available", (context) => {
+      const bittu = { name: "bittu", messages: [] };
+
+      onMessage("Hey", bittu, [bittu]);
+
+      assert.deepStrictEqual(bittu.messages, ["Hey"]);
+    });
+  })
 });
