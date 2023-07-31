@@ -20,7 +20,7 @@ module.exports = {
 
     "max-classes-per-file": ["error", 3],
     "max-params": ["warn", 3],
-    "max-lines-per-function": ["error", 15],
+    "max-lines-per-function": ["error", 20],
     "max-depth": ["error", 3]
   }
 }
