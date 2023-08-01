@@ -1,16 +1,20 @@
 const net = require("node:net");
-const { connectUser } = require("./chat-app");
-const PORT = 8000;
+const { connectUser, SocketService, Chat, ChatService } = require("./chat-app");
+const PORT = 9000;
 
 const main = () => {
   const chatServer = net.createServer();
-  const activeUsers = [];
+
+  const chat = new Chat();
+  const socketService = new SocketService(chatServer);
+  const chatService = new ChatService(chat, socketService);
+
+  chatService.start();
 
   chatServer.listen(PORT, () => {
     console.log("chat server is online");
   });
 
-  chatServer.on("connection", (socket) => connectUser(socket, activeUsers));
 };
 
 main();

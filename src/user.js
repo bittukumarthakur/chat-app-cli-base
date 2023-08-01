@@ -1,12 +1,17 @@
+const { count } = require("node:console");
 const net = require("node:net");
-const PORT = 8000;
+const PORT = 9000;
 
 const onData = (data, user) => {
-  user.write(data);
+
+  user.write(JSON.stringify({
+    sender: data,
+  }));
 };
 
 const display = (data) => {
-  console.log(data);
+  const messages = data.messages.join('\n');
+  console.log(`${data.sender}: ${messages}`);
 };
 
 const main = () => {
@@ -20,7 +25,7 @@ const main = () => {
       onData(data.trim(), user);
     });
 
-    user.on("data", (data) => display(data));
+    user.on("data", (data) => display(JSON.parse(data)));
   });
 
 };
