@@ -1,5 +1,6 @@
 const net = require("node:net");
-const { connectUser,  ChatIO, Users, ChatService } = require("./chat-app");
+const { connectUser,  ChatIO,  ChatService } = require("./chat-app");
+const {Users} = require("./users");
 const PORT = 9000;
 
 const main = () => {

@@ -1,90 +1,96 @@
 const { EventEmitter } = require("events");
+const { User } = require("./users");
 
 class ChatService {
   #users;
   #chatIO;
-  #sockets;
 
   constructor(users, chatIO) {
     this.#users = users;
-    this.#sockets = {};
     this.#chatIO = chatIO;
   }
 
   #formatMessage(sender, message) {
-    return JSON.stringify({
-      sender,
-      messages: [message]
-    });
+    return JSON.stringify({ sender, messages: [message] });
   }
 
-  #onNewUser() {
-    this.#chatIO.on("new-user", (data, socket) => {
-      const name = JSON.parse(data).sender;
-      this.#users.addUser(name);
-
-      this.#sockets[name] = socket;
-      socket.write(this.#formatMessage("server", `Hello ${name}`));
-    });
+  #onNewUser(name) {
+    const user = new User(name);
+    this.#users.addUser(user);
+    const formattedMsg = this.#formatMessage("server", `Hello ${name}`);
+    this.#chatIO.write(name, formattedMsg);
   }
 
-  #onPrivateChatRequest() {
-    this.#chatIO.on("private-chat-req", (data) => {
-      const { sender, receiver } = JSON.parse(data);
-      this.#users.connect(sender, receiver);
-    });
+  #onMessage(data) {
+    const { sender, receiver, messages } = JSON.parse(data);
+    const formattedMsg = this.#formatMessage(sender, ...messages);
+    this.#chatIO.write(receiver, formattedMsg);
   }
 
-  #onMessage() {
-    this.#chatIO.on("message", (data) => {
-      const { sender, messages } = JSON.parse(data);
-      const receiver = this.#users.findReceiver(sender); //sender is sender name
-
-      const formattedMsg = this.#formatMessage(sender, ...messages);
-      this.#sockets[receiver].write(`${formattedMsg}`);
-    });
+  #onDisconnect(name) {
+    this.#users.toggleStatus(name);
   }
 
   start() {
     this.#chatIO.buildConnection({
-      formatter: (msg) => this.#formatMessage(msg),
-      isChatRequest: (data) => JSON.parse(data).receiver !== ""
+      formatter: (sender, msg) => this.#formatMessage(sender, msg),
+      isInvalidAccess: (name) => this.#users.isInvalidAccess(name),
+      authenticateUser: (name) => this.#users.authenticateUser(name)
     });
 
-    this.#onNewUser();
-    this.#onPrivateChatRequest();
-    this.#onMessage();
+    this.#chatIO.on("message", (data) => this.#onMessage(data));
+    this.#chatIO.on("new-user", (name) => this.#onNewUser(name));
+    this.#chatIO.on("disconnect", (name) => this.#onDisconnect(name));
+
   }
 }
 
 class ChatIO extends EventEmitter {
   #server;
+  #sockets;
 
   constructor(server) {
     super();
     this.#server = server;
+    this.#sockets = {};
   }
 
   buildConnection(onData) {
-    const { formatter, isChatRequest } = onData;
-
     this.#server.on("connection", (socket) => {
-      const prompt = formatter("Enter your name");
+      socket.setEncoding("utf-8");
+
+      const { formatter, isInvalidAccess } = onData;
+      const prompt = formatter("server", "Enter your name");
       socket.write(`${prompt}`);
 
       socket.once("data", (data) => {
-        this.emit("new-user", data, socket);
+        const name = JSON.parse(data).sender;
+
+        if (isInvalidAccess(name)) {
+          socket.write(formatter("server", "Name already exist"),
+            () => socket.end());
+          return;
+        }
+
+
+        this.#sockets[name] = socket;
+        this.emit("new-user", name);
 
         socket.on("data", (data) => {
-          if (isChatRequest(data)) {
-            this.emit("private-chat-req", data);
-            return;
-          }
-
           this.emit("message", data);
         });
+
+        socket.on("end", () => {
+          // emit here offline event;
+          this.emit("disconnect", name);
+          console.log(name, ">>> Offline")
+        })
       });
     });
+  }
+
+  write(receiver, message) {
+    this.#sockets[receiver].write(message);
   }
 }
 

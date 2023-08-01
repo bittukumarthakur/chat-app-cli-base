@@ -1,42 +1,57 @@
 class User {
-  #name;
-  #id;
+  #name
+  #online
 
-  constructor(id, name) {
+  constructor(name) {
     this.#name = name;
-    this.#id = id;
+    this.#online = true;
   }
 
   get name() {
-    this.#name;
+    return this.#name;
+  }
+
+  isOnline() {
+    return this.#online;
+  }
+
+  toggleStatus() {
+    this.#online = !this.#online;
   }
 }
 
 class Users {
   #users;
-  #count;
-  #chatPartners;
 
   constructor() {
     this.#users = [];
-    this.#chatPartners = {};
   }
 
-  findReceiver(sender) {
-    return this.#chatPartners[sender];
-  }
-
-  addUser(name) {
-    this.#count++;
-    const user = new User(this.#count, name);
+  addUser(user) {
     this.#users.push(user);
   }
 
-  connect(sender, receiver) {
-    this.#chatPartners[sender] = receiver;
+  #getUserByName(name) {
+    return this.#users.find((user) => user.name === name);
+  }
+
+  #isOnline(name) {
+    const user = this.#getUserByName(name);
+    return user.isOnline();
+  }
+
+  isInvalidAccess(name) {
+    const isRegisteredUser = this.#users.some((user) => user.name === name);
+    return isRegisteredUser && this.#isOnline(name);
+  }
+
+  toggleStatus(name) {
+    const user = this.#getUserByName(name);
+    user.toggleStatus();
   }
 }
 
 module.exports = {
-  Users
+  Users,
+  User
 };
