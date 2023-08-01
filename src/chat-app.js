@@ -23,17 +23,13 @@ class Users {
   constructor() {
     this.#users = [];
     this.#activeUsers = [];
+    this.#chatPartners = {};
   }
 
   findReceiver(sender) {
     return this.#chatPartners[sender];
   }
-
-  sendMessage(message, sender) {
-    //find with whom sender is connected with
-    // send message to that socket
-  }
-
+  
   addUser(name) {
     this.#count++;
     const user = new User(this.#count, name);
@@ -42,6 +38,8 @@ class Users {
   }
 
   connect(sender, receiver) {
+    console.log(`sender: ${sender} receiver: ${receiver}`);
+
     this.#chatPartners[sender] = receiver;
     console.log(">>>>>", this.#chatPartners);
   }
@@ -88,7 +86,7 @@ class ChatService {
       const { sender, messages } = JSON.parse(data);
       const receiver = this.#users.findReceiver(sender); //sender is sender name
 
-      const formattedMsg = this.formatMessage(sender, ...messages);
+      const formattedMsg = this.#formatMessage(sender, ...messages);
       this.#sockets[receiver].write(`${formattedMsg}`);
     });
   }
