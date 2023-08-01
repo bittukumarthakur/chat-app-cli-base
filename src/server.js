@@ -1,13 +1,13 @@
 const net = require("node:net");
-const { connectUser, SocketService, Chat, ChatService } = require("./chat-app");
+const { connectUser, SocketService, Users, ChatService } = require("./chat-app");
 const PORT = 9000;
 
 const main = () => {
   const chatServer = net.createServer();
 
-  const chat = new Chat();
+  const users = new Users();
   const socketService = new SocketService(chatServer);
-  const chatService = new ChatService(chat, socketService);
+  const chatService = new ChatService(users, socketService);
 
   chatService.start();
 

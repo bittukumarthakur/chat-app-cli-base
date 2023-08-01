@@ -4,6 +4,10 @@ module.exports = {
     "es2019": true
   },
 
+  "parserOptions": {
+    ecmaVersion: "latest"
+  },
+  
   "ignorePatterns": [".eslintrc.js"],
 
   rules: {

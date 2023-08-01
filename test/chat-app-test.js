@@ -45,5 +45,5 @@ describe("sendMessage", () => {
 
       assert.deepStrictEqual(bittu.messages, ["Hey"]);
     });
-  })
+  });
 });

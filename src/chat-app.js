@@ -1,8 +1,8 @@
 const { EventEmitter } = require("events");
 
 class User {
-  #name
-  #id
+  #name;
+  #id;
 
   constructor(id, name) {
     this.#name = name;
@@ -14,19 +14,24 @@ class User {
   }
 }
 
-class Chat {
-  #users
-  #activeUsers
-  #count
-  #connections
+class Users {
+  #users;
+  #activeUsers;
+  #count;
+  #chatPartners;
 
   constructor() {
     this.#users = [];
     this.#activeUsers = [];
   }
 
-  sendMessage(message, sender) {
+  findReceiver(sender) {
+    return this.#chatPartners[sender];
+  }
 
+  sendMessage(message, sender) {
+    //find with whom sender is connected with
+    // send message to that socket
   }
 
   addUser(name) {
@@ -35,39 +40,57 @@ class Chat {
     this.#activeUsers.push(user);
     this.#users.push(user);
   }
+
+  connect(sender, receiver) {
+    this.#chatPartners[sender] = receiver;
+    console.log(">>>>>", this.#chatPartners);
+  }
 }
 
 class ChatService {
-  #chat
-  #socketService
-  #connections
+  #users;
+  #socketService;
+  #sockets;
 
-  constructor(chat, socketService) {
-    this.#chat = chat;
-    this.#connections = {};
+  constructor(users, socketService) {
+    this.#users = users;
+    this.#sockets = {};
     this.#socketService = socketService;
   }
 
-  #formatMessage(message) {
+  #formatMessage(sender, message) {
     return JSON.stringify({
-      sender: "server",
+      sender,
       messages: [message]
-    })
+    });
   }
 
   start() {
-    this.#socketService.buildConnection((msg) => this.#formatMessage(msg));
+    this.#socketService.buildConnection({
+      formatter: (msg) => this.#formatMessage(msg),
+      isChatRequest: (data) => JSON.parse(data).receiver !== ""
+    });
 
     this.#socketService.on("new-user", (data, socket) => {
       const name = JSON.parse(data).sender;
-      this.#chat.addUser(name);
+      this.#users.addUser(name);
 
-      this.#connections[name] = socket;
-      socket.write(this.#formatMessage(`Hello ${name}`));
+      this.#sockets[name] = socket;
+      socket.write(this.#formatMessage("server", `Hello ${name}`));
     });
 
-    this.#socketService.on("private-chat-req", () => { });
-    this.#socketService.on("message", () => { });
+    this.#socketService.on("private-chat-req", (data) => {
+      const { sender, receiver } = JSON.parse(data);
+      this.#users.connect(sender, receiver);
+    });
+
+    this.#socketService.on("message", (data) => {
+      const { sender, messages } = JSON.parse(data);
+      const receiver = this.#users.findReceiver(sender); //sender is sender name
+
+      const formattedMsg = this.formatMessage(sender, ...messages);
+      this.#sockets[receiver].write(`${formattedMsg}`);
+    });
   }
 }
 
@@ -75,16 +98,18 @@ class ChatService {
 
 
 class SocketService extends EventEmitter {
-  #server
+  #server;
 
   constructor(server) {
     super();
     this.#server = server;
   }
 
-  buildConnection(cb) {
+  buildConnection(onData) {
+    const { formatter, isChatRequest } = onData;
+
     this.#server.on("connection", (socket) => {
-      const prompt = cb("Enter your name");
+      const prompt = formatter("Enter your name");
       socket.write(`${prompt}`);
 
       socket.once("data", (data) => {
@@ -97,16 +122,16 @@ class SocketService extends EventEmitter {
           }
 
           this.emit("message", data);
-
-        })
+        });
       });
-    })
+    });
   }
 }
 
 module.exports = {
   SocketService,
   ChatService,
-  Chat,
+  Users,
   User
 };
+
