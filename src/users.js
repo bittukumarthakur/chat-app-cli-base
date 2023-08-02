@@ -1,10 +1,12 @@
 class User {
   #name
   #online
+  #chatHistory // rich object, message queue 
 
   constructor(name) {
     this.#name = name;
     this.#online = true;
+    this.#chatHistory = [];
   }
 
   get name() {
@@ -17,6 +19,14 @@ class User {
 
   toggleStatus() {
     this.#online = !this.#online;
+  }
+
+  storeMessage(message) { //sender: message
+    this.#chatHistory.push(message);
+  }
+
+  get chatHistory() {
+    return [...this.#chatHistory]
   }
 }
 
@@ -35,19 +45,32 @@ class Users {
     return this.#users.find((user) => user.name === name);
   }
 
-  #isOnline(name) {
+  isOnline(name) {
     const user = this.#getUserByName(name);
     return user.isOnline();
   }
 
-  isInvalidAccess(name) {
-    const isRegisteredUser = this.#users.some((user) => user.name === name);
-    return isRegisteredUser && this.#isOnline(name);
+  isRegisteredUser(name) {
+    return this.#users.some((user) => user.name === name);
   }
 
+  
   toggleStatus(name) {
     const user = this.#getUserByName(name);
     user.toggleStatus();
+  }
+
+  updateChatHistory(senderName, receiverName, message) {
+    const sender = this.#getUserByName(senderName);
+    sender.storeMessage({ senderName, message });
+
+    const receiver = this.#getUserByName(receiverName);
+    receiver.storeMessage({ senderName, message });
+  };
+
+  findChatHistory(name) {
+    const user = this.#getUserByName(name)
+    return user.chatHistory;
   }
 }
 

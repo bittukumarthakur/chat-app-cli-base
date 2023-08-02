@@ -19,11 +19,13 @@ class ChatService {
     this.#users.addUser(user);
     const formattedMsg = this.#formatMessage("server", `Hello ${name}`);
     this.#chatIO.write(name, formattedMsg);
+
   }
 
   #onMessage(data) {
     const { sender, receiver, messages } = JSON.parse(data);
     const formattedMsg = this.#formatMessage(sender, ...messages);
+    this.#users.updateChatHistory(sender, receiver, messages);
     this.#chatIO.write(receiver, formattedMsg);
   }
 
@@ -31,11 +33,30 @@ class ChatService {
     this.#users.toggleStatus(name);
   }
 
+  #logIn(name) {
+    const chatHistory = this.#users.findChatHistory(name);
+    console.log(chatHistory);
+    // this.#chatIO.write(name, chatHistory);
+  }
+
+  #authenticateUser(name) {
+    if (this.#users.isRegisteredUser(name)) {
+      this.#logIn(name);
+      return;
+    }
+
+    this.#onNewUser(name);
+  }
+
+  #isInvalidAccess(name) {
+    return this.#users.isRegisteredUser(name) && this.#users.isOnline(name);
+  }
+
   start() {
     this.#chatIO.buildConnection({
       formatter: (sender, msg) => this.#formatMessage(sender, msg),
-      isInvalidAccess: (name) => this.#users.isInvalidAccess(name),
-      authenticateUser: (name) => this.#users.authenticateUser(name)
+      isInvalidAccess: (name) => this.#isInvalidAccess(name),
+      authenticateUser: (name) => this.#authenticateUser(name)
     });
 
     this.#chatIO.on("message", (data) => this.#onMessage(data));
@@ -59,7 +80,7 @@ class ChatIO extends EventEmitter {
     this.#server.on("connection", (socket) => {
       socket.setEncoding("utf-8");
 
-      const { formatter, isInvalidAccess } = onData;
+      const { formatter, isInvalidAccess, authenticateUser } = onData;
       const prompt = formatter("server", "Enter your name");
       socket.write(`${prompt}`);
 
@@ -72,9 +93,9 @@ class ChatIO extends EventEmitter {
           return;
         }
 
-
         this.#sockets[name] = socket;
-        this.emit("new-user", name);
+        authenticateUser(name);
+        // this.emit("new-user", name);
 
         socket.on("data", (data) => {
           this.emit("message", data);
@@ -83,7 +104,6 @@ class ChatIO extends EventEmitter {
         socket.on("end", () => {
           // emit here offline event;
           this.emit("disconnect", name);
-          console.log(name, ">>> Offline")
         })
       });
     });
