@@ -1,5 +1,6 @@
 const { EventEmitter } = require("events");
 const { User } = require("./users");
+const event = { message: "message", disconnect: "disconnect" };
 
 class ChatService {
   #users;
@@ -11,10 +12,10 @@ class ChatService {
   }
 
   #formatMessage(sender, message) {
-    return JSON.stringify([{ sender, messages: [message] }]);
+    return JSON.stringify([{ sender, message }]);
   }
 
-  #onNewUser(name) {
+  #signUp(name) {
     const user = new User(name);
     this.#users.addUser(user);
     const formattedMsg = this.#formatMessage("server", `Hello ${name}`);
@@ -23,9 +24,9 @@ class ChatService {
   }
 
   #onMessage(data) {
-    const { sender, receiver, messages } = JSON.parse(data);
-    const formattedMsg = this.#formatMessage(sender, ...messages);
-    this.#users.updateChatHistory(sender, receiver, messages);
+    const { sender, receiver, message } = JSON.parse(data);
+    const formattedMsg = this.#formatMessage(sender, message);
+    this.#users.updateChatHistory(sender, receiver, message);
     this.#chatIO.write(receiver, formattedMsg);
   }
 
@@ -34,6 +35,7 @@ class ChatService {
   }
 
   #logIn(name) {
+    this.#users.toggleStatus(name);
     const chatHistory = this.#users.findChatHistory(name);
     this.#chatIO.write(name, JSON.stringify(chatHistory));
   }
@@ -44,7 +46,7 @@ class ChatService {
       return;
     }
 
-    this.#onNewUser(name);
+    this.#signUp(name);
   }
 
   #isInvalidAccess(name) {
@@ -58,10 +60,8 @@ class ChatService {
       authenticateUser: (name) => this.#authenticateUser(name)
     });
 
-    this.#chatIO.on("message", (data) => this.#onMessage(data));
-    this.#chatIO.on("new-user", (name) => this.#onNewUser(name));
-    this.#chatIO.on("disconnect", (name) => this.#onDisconnect(name));
-
+    this.#chatIO.on(event.message, (data) => this.#onMessage(data));
+    this.#chatIO.on(event.disconnect, (name) => this.#onDisconnect(name));
   }
 }
 
@@ -94,15 +94,13 @@ class ChatIO extends EventEmitter {
 
         this.#sockets[name] = socket;
         authenticateUser(name);
-        // this.emit("new-user", name);
 
         socket.on("data", (data) => {
-          this.emit("message", data);
+          this.emit(event.message, data);
         });
 
         socket.on("end", () => {
-          // emit here offline event;
-          this.emit("disconnect", name);
+          this.emit(event.disconnect, name);
         })
       });
     });

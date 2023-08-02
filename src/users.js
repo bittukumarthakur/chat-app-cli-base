@@ -60,12 +60,12 @@ class Users {
     user.toggleStatus();
   }
 
-  updateChatHistory(senderName, receiverName, messages) {
+  updateChatHistory(senderName, receiverName, message) {
     const sender = this.#getUserByName(senderName);
-    sender.storeMessage({ sender: senderName, messages });
+    sender.storeMessage({ sender: senderName, message });
 
     const receiver = this.#getUserByName(receiverName);
-    receiver.storeMessage({ sender: senderName, messages });
+    receiver.storeMessage({ sender: senderName, message });
   };
 
   findChatHistory(name) {

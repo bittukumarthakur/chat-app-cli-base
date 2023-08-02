@@ -2,13 +2,13 @@ const net = require("node:net");
 const PORT = 9000;
 
 const sendResponse = (state, client, data) => {
-  client.write(JSON.stringify({ ...state, messages: [data] }));
+  client.write(JSON.stringify({ ...state, message: data }));
 };
 
 const display = (data) => {
   const parsedData = JSON.parse(data);
-  const messages = parsedData.map(({ sender, messages }) => `${sender}: ${messages[0]}`);
-  console.log(messages.join("\n"));
+  const conversations = parsedData.map(({ sender, message }) => `${sender}: ${message}`);
+  console.log(conversations.join("\n"));
 };
 
 const isChangePartnerReq = (data) => data.startsWith('to:');
@@ -24,8 +24,7 @@ const onData = (data, client, state) => {
 }
 
 const chat = (client) => {
-  const [sender, receiver] = ["", ""];
-  const state = { sender, receiver };
+  const state = { sender: "", receiver: "" };
 
   process.stdin.setEncoding("utf-8");
   client.setEncoding("utf-8");
