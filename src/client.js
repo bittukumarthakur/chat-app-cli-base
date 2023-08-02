@@ -7,8 +7,8 @@ const sendResponse = (state, client, data) => {
 
 const display = (data) => {
   const parsedData = JSON.parse(data);
-  const messages = parsedData.messages.join('\n');
-  console.log(`${parsedData.sender}: ${messages}`);
+  const messages = parsedData.map(({ sender, messages }) => `${sender}: ${messages[0]}`);
+  console.log(messages.join("\n"));
 };
 
 const isChangePartnerReq = (data) => data.startsWith('to:');

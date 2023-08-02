@@ -54,18 +54,18 @@ class Users {
     return this.#users.some((user) => user.name === name);
   }
 
-  
+
   toggleStatus(name) {
     const user = this.#getUserByName(name);
     user.toggleStatus();
   }
 
-  updateChatHistory(senderName, receiverName, message) {
+  updateChatHistory(senderName, receiverName, messages) {
     const sender = this.#getUserByName(senderName);
-    sender.storeMessage({ senderName, message });
+    sender.storeMessage({ sender: senderName, messages });
 
     const receiver = this.#getUserByName(receiverName);
-    receiver.storeMessage({ senderName, message });
+    receiver.storeMessage({ sender: senderName, messages });
   };
 
   findChatHistory(name) {

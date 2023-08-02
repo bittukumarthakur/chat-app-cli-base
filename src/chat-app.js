@@ -11,7 +11,7 @@ class ChatService {
   }
 
   #formatMessage(sender, message) {
-    return JSON.stringify({ sender, messages: [message] });
+    return JSON.stringify([{ sender, messages: [message] }]);
   }
 
   #onNewUser(name) {
@@ -35,8 +35,7 @@ class ChatService {
 
   #logIn(name) {
     const chatHistory = this.#users.findChatHistory(name);
-    console.log(chatHistory);
-    // this.#chatIO.write(name, chatHistory);
+    this.#chatIO.write(name, JSON.stringify(chatHistory));
   }
 
   #authenticateUser(name) {
