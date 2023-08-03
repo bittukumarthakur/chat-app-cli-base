@@ -1,8 +1,8 @@
 const net = require("node:net");
 const PORT = 9000;
 
-const sendResponse = (state, client, data) => {
-  client.write(JSON.stringify({ ...state, message: data }));
+const sendResponse = (client, token) => {
+  client.write(JSON.stringify(token));
 };
 
 const display = (data) => {
@@ -17,6 +17,7 @@ const onData = (data, client, state) => {
   const message = data.trim();
   if (isChangePartnerReq(message)) {
     state.receiver = message.split(":").at(1);
+    //get chat of that partner
     return;
   };
 
@@ -41,8 +42,14 @@ const chat = (client) => {
 }
 
 const main = () => {
+  const name = process.argv[2];
   const client = net.createConnection(PORT);
-  client.on("connect", () => chat(client));
+
+  client.on("connect", () => {
+    const request = { title: "user-name", value: name };
+    sendResponse(client, request);
+    chat(client, name);
+  });
 };
 
 main();

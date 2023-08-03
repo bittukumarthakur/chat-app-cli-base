@@ -1,12 +1,12 @@
 class User {
-  #name
-  #online
-  #chatHistory // rich object, message queue 
+  #name;
+  #online;
+  #chatHistory; // rich object, message queue 
 
   constructor(name) {
     this.#name = name;
     this.#online = true;
-    this.#chatHistory = [];
+    this.#chatHistory = {};
   }
 
   get name() {
@@ -21,8 +21,17 @@ class User {
     this.#online = !this.#online;
   }
 
-  storeMessage(message) { //sender: message
-    this.#chatHistory.push(message);
+  #isNewPartner(partner) {
+    return !(partner in this.#chatHistory);
+  }
+
+  keepConversation(partner, conversation) {
+    if (this.#isNewPartner(partner)) {
+      console.log("new partner");
+      this.#chatHistory[partner] = [];
+    }
+
+    this.#chatHistory[partner].push(conversation);
   }
 
   get chatHistory() {
@@ -61,11 +70,13 @@ class Users {
   }
 
   updateChatHistory(senderName, receiverName, message) {
+    const conversation = { source: senderName, message };
+
     const sender = this.#getUserByName(senderName);
-    sender.storeMessage({ sender: senderName, message });
+    sender.keepConversation(receiverName, conversation)
 
     const receiver = this.#getUserByName(receiverName);
-    receiver.storeMessage({ sender: senderName, message });
+    receiver.keepConversation(senderName, conversation);
   };
 
   findChatHistory(name) {
