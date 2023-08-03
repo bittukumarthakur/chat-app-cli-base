@@ -42,3 +42,52 @@ enter:step-9;
 exit:
 
 ## chatHistory
+sender name we I have 
+type: [
+  'personal-chat',
+  'receiver name'
+]
+
+if personal chat we need receiver name'
+{
+  type: 'personal-chat',
+  data: { sender , receiver, message}
+}
+
+if group chat we need group name along with type
+
+{
+  type: 'group-chat',
+  data: {
+    sender,
+    group-name,
+    message
+  }
+}
+
+## request data format
+- login/open chat app
+request = {
+  type: "log-in",
+  data: {name: bittu}
+  }
+
+- personal chat
+request = {
+  type: "personal-chat",
+  data: {sender: bittu, receiver: raj, message: hello bro}
+  }
+
+- create group
+request = {
+  type: "new-group",
+  data: {sender: bittu, room: step}
+  }
+
+- group message
+request = {
+  type: "group-message",
+  data: {sender: bittu, room: step, message}
+  }
+
+- 

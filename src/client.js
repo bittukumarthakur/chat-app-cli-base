@@ -1,8 +1,12 @@
 const net = require("node:net");
 const PORT = 9000;
+const commands = { to: "", createRoom: "", join: "", exit: "" };
 
-const sendResponse = (client, token) => {
-  client.write(JSON.stringify(token));
+// make a class 
+const currentState = { type: '', receiver: '' };
+
+const sendRequest = (request, client) => {
+  client.write(JSON.stringify(request));
 };
 
 const display = (data) => {
@@ -11,44 +15,49 @@ const display = (data) => {
   console.log(conversations.join("\n"));
 };
 
-const isChangePartnerReq = (data) => data.startsWith('to:');
+const isPersonalChat = (data) => data.startsWith("to:");
 
-const onData = (data, client, state) => {
-  const message = data.trim();
-  if (isChangePartnerReq(message)) {
-    state.receiver = message.split(":").at(1);
-    //get chat of that partner
-    return;
-  };
+const raiseRequest = (data, client, name) => {
+  switch (true) {
+    case isPersonalChat(data): {
+      receiver = data.split(":").at(1);
+      currentState.type = 'personal-chat';
+      currentState.receiver = receiver;
+      break;
+    }
 
-  sendResponse(state, client, message);
-}
+    default: {
+      const request = {
+        type: currentState.type,
+        data: {
+          sender: name,
+          receiver: currentState.receiver,
+          message: data
+        }
+      };
 
-const chat = (client) => {
-  const state = { sender: "", receiver: "" };
+      sendRequest(request, client);
+    }
+  }
+};
 
+const raiseRequestOnData = (client, name) => {
   process.stdin.setEncoding("utf-8");
   client.setEncoding("utf-8");
 
-  process.stdin.once("data", (data) => {
-    state.sender = data.trim();
-    sendResponse(state, client, "");
-
-    process.stdin.on("data", (data) => onData(data, client, state));
-  });
-
-  client.on("data", display);
-  client.on("end", () => process.stdin.destroy());
-}
+  process.stdin.on("data", (data) => raiseRequest(data.trim(), client, name));
+};
 
 const main = () => {
   const name = process.argv[2];
   const client = net.createConnection(PORT);
 
   client.on("connect", () => {
-    const request = { title: "user-name", value: name };
-    sendResponse(client, request);
-    chat(client, name);
+    const request = { type: "log-in", data: { name } };
+    sendRequest(request, client);
+
+    raiseRequestOnData(client, name);
+    client.on("data", display);
   });
 };
 

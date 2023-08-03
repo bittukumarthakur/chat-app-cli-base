@@ -5,6 +5,7 @@ const event = { message: "message", disconnect: "disconnect" };
 class ChatService {
   #users;
   #chatIO;
+  #chatHistory;
 
   constructor(users, chatIO) {
     this.#users = users;
@@ -24,7 +25,7 @@ class ChatService {
   }
 
   #onMessage(data) {
-    const { sender, receiver, message } = JSON.parse(data);
+    const { sender, receiver, message } = data;
     const formattedMsg = this.#formatMessage(sender, message);
     this.#users.updateChatHistory(sender, receiver, message);
 
@@ -35,7 +36,7 @@ class ChatService {
     this.#users.toggleStatus(name);
   }
 
-  #onUserEntry(name) {
+  #logIn(name) {
     if (!this.#users.isRegisteredUser(name)) {
       this.#registerUser(name);
       return;
@@ -43,7 +44,7 @@ class ChatService {
 
     this.#users.toggleStatus(name);
     const chatHistory = this.#users.findChatHistory(name);
-    this.#chatIO.write(name, JSON.stringify(chatHistory));
+    // this.#chatIO.write(name, JSON.stringify(chatHistory));
   }
 
   #isInvalidAccess(name) {
@@ -51,13 +52,27 @@ class ChatService {
   }
 
   #handleRequest(request) {
-    this.#onUserEntry(request.value);
+    const { type, data } = request;
+
+    switch (type) {
+      case "log-in": {
+        this.#logIn(data.name);
+        break;
+      }
+
+      case "personal-chat": {
+        // this.#chatHistory.updatePersonalChat(data);
+        this.#onMessage(data);
+        break;
+      }
+    }
   }
 
   start() {
     this.#chatIO.buildConnection({
       handleRequest: (request) => this.#handleRequest(request),
-      isInvalidAccess: (name) => this.#isInvalidAccess(name)
+      isInvalidAccess: (name) => this.#isInvalidAccess(name),
+      onDisconnect: (name) => this.#onDisconnect(name)
     });
   }
 }
@@ -71,19 +86,24 @@ class ChatIO {
     this.#sockets = {};
   }
 
-  buildConnection({ handleRequest, isInvalidAccess }) {
+  buildConnection({ handleRequest, isInvalidAccess, onDisconnect }) {
     this.#server.on("connection", (socket) => {
       socket.setEncoding("utf-8");
       socket.on("data", (data) => {
         const request = JSON.parse(data);
 
-        if (request.title === "user-name") {
-          const name = request.value;
+        if (request.type === "log-in") {
+          const { name } = request.data;
 
           if (isInvalidAccess(name)) {
             socket.end();
             return;
           }
+
+          socket.on("end", () => {
+            console.log(`>> Disconnected: ${name}`);
+            onDisconnect(name);
+          });
 
           this.#sockets[name] = socket;
         }

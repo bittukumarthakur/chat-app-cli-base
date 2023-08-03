@@ -27,7 +27,6 @@ class User {
 
   keepConversation(partner, conversation) {
     if (this.#isNewPartner(partner)) {
-      console.log("new partner");
       this.#chatHistory[partner] = [];
     }
 
@@ -35,7 +34,7 @@ class User {
   }
 
   get chatHistory() {
-    return [...this.#chatHistory]
+    return { ...this.#chatHistory };
   }
 }
 
@@ -73,14 +72,14 @@ class Users {
     const conversation = { source: senderName, message };
 
     const sender = this.#getUserByName(senderName);
-    sender.keepConversation(receiverName, conversation)
+    sender.keepConversation(receiverName, conversation);
 
     const receiver = this.#getUserByName(receiverName);
     receiver.keepConversation(senderName, conversation);
   };
 
   findChatHistory(name) {
-    const user = this.#getUserByName(name)
+    const user = this.#getUserByName(name);
     return user.chatHistory;
   }
 }
