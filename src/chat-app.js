@@ -7,9 +7,10 @@ class ChatService {
   #chatIO;
   #chatHistory;
 
-  constructor(users, chatIO) {
+  constructor(users, chatIO, chatHistory) {
     this.#users = users;
     this.#chatIO = chatIO;
+    this.#chatHistory = chatHistory;
   }
 
   #formatMessage(sender, message) {
@@ -24,10 +25,10 @@ class ChatService {
     this.#chatIO.write(name, formattedMsg);
   }
 
-  #onMessage(data) {
-    const { sender, receiver, message } = data;
+  #onMessage(conversation) {
+    const { sender, receiver, message } = conversation;
     const formattedMsg = this.#formatMessage(sender, message);
-    this.#users.updateChatHistory(sender, receiver, message);
+    this.#chatHistory.addToPersonal(conversation);
 
     this.#chatIO.write(receiver, formattedMsg);
   }
@@ -43,12 +44,15 @@ class ChatService {
     }
 
     this.#users.toggleStatus(name);
-    const chatHistory = this.#users.findChatHistory(name);
-    // this.#chatIO.write(name, JSON.stringify(chatHistory));
   }
 
   #isInvalidAccess(name) {
     return this.#users.isRegisteredUser(name) && this.#users.isOnline(name);
+  }
+
+  #getPersonalChatHistory({ sender, receiver }) {
+    const chatHistory = this.#chatHistory.getPersonal(sender, receiver);
+    this.#chatIO.write(sender, JSON.stringify(chatHistory));
   }
 
   #handleRequest(request) {
@@ -61,9 +65,12 @@ class ChatService {
       }
 
       case "personal-chat": {
-        // this.#chatHistory.updatePersonalChat(data);
         this.#onMessage(data);
         break;
+      }
+
+      case "personal-chat-history": {
+        this.#getPersonalChatHistory(data);
       }
     }
   }

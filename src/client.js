@@ -9,10 +9,20 @@ const sendRequest = (request, client) => {
   client.write(JSON.stringify(request));
 };
 
-const display = (data) => {
-  const parsedData = JSON.parse(data);
-  const conversations = parsedData.map(({ sender, message }) => `${sender}: ${message}`);
+const display = (response) => {
+  if (response.length === 0) {
+    return;
+  }
+
+  const conversations = response.map(({ sender, message }) => `${sender}: ${message}`);
   console.log(conversations.join("\n"));
+};
+
+const fetchChatHistory = (sender, receiver, client) => {
+  const type = 'personal-chat-history';
+  const data = { sender, receiver };
+
+  sendRequest({ type, data }, client);
 };
 
 const isPersonalChat = (data) => data.startsWith("to:");
@@ -23,6 +33,8 @@ const raiseRequest = (data, client, name) => {
       receiver = data.split(":").at(1);
       currentState.type = 'personal-chat';
       currentState.receiver = receiver;
+      console.clear();
+      fetchChatHistory(name, receiver, client);
       break;
     }
 
@@ -57,7 +69,7 @@ const main = () => {
     sendRequest(request, client);
 
     raiseRequestOnData(client, name);
-    client.on("data", display);
+    client.on("data", (data) => display(JSON.parse(data)));
   });
 };
 

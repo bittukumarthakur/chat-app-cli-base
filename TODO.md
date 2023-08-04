@@ -90,4 +90,28 @@ request = {
   data: {sender: bittu, room: step, message}
   }
 
-- 
+## chat history
+history structure => {
+  personal: [
+    {sender,recevier,message},
+    {sender,recevier,message},
+  ],
+  group: {
+    groupName: [
+    {source,message}
+    {source,message}
+    ]
+  }
+}
+
+const chatHistory = new ChatHistory;
+chatHistory.addToPersonal({sender,recevier,message});
+chatHistory.getPersonal(sender, receiver);
+
+
+to:
+enter:
+fetch chat history from server
+
+
+to:raj

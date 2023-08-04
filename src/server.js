@@ -1,6 +1,7 @@
 const net = require("node:net");
-const { connectUser, ChatIO, ChatService } = require("./chat-app");
+const { ChatIO, ChatService } = require("./chat-app");
 const { Users } = require("./users");
+const { ChatHistory } = require("./chat-history");
 const PORT = 9000;
 
 const main = () => {
@@ -8,7 +9,8 @@ const main = () => {
 
   const users = new Users();
   const chatIO = new ChatIO(chatServer);
-  const chatService = new ChatService(users, chatIO);
+  const chatHistory = new ChatHistory();
+  const chatService = new ChatService(users, chatIO, chatHistory);
 
   chatService.start();
 
