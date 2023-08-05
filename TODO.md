@@ -65,6 +65,12 @@ if group chat we need group name along with type
   }
 }
 
+{
+  type: 'join-room',
+  data: { userName, roomName}
+}
+
+
 ## request data format
 - login/open chat app
 request = {
@@ -115,3 +121,17 @@ fetch chat history from server
 
 
 to:raj
+
+## need to improve 
+to remove chat history from user and users;
+to rename folder chat-app;
+
+socket 
+data // business logic
+write to specific socket
+
+how to validate 
+socket has been formed
+validate the connection/request
+
+How will we validate the request ??

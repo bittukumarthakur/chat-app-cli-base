@@ -1,131 +1,25 @@
-const { EventEmitter } = require("events");
-const { User } = require("./users");
-const event = { message: "message", disconnect: "disconnect" };
+const net = require("node:net");
+const { ChatIO, ChatService } = require("./chat-service");
+const { Users } = require("./users");
+const { ChatHistory } = require("./chat-history");
+const { Rooms } = require("./rooms");
+const PORT = 9000;
 
-class ChatService {
-  #users;
-  #chatIO;
-  #chatHistory;
+const main = () => {
+  const chatServer = net.createServer();
 
-  constructor(users, chatIO, chatHistory) {
-    this.#users = users;
-    this.#chatIO = chatIO;
-    this.#chatHistory = chatHistory;
-  }
+  const users = new Users();
+  const chatIO = new ChatIO(chatServer);
+  const chatHistory = new ChatHistory();
+  const rooms = new Rooms();
+  const chatService = new ChatService(users, chatIO, chatHistory, rooms);
 
-  #formatMessage(sender, message) {
-    return JSON.stringify([{ sender, message }]);
-  }
+  chatService.start();
 
-  #registerUser(name) {
-    const user = new User(name);
-    this.#users.addUser(user);
-    const formattedMsg = this.#formatMessage("server", `Hello ${name}`);
+  chatServer.listen(PORT, () => {
+    console.log("chat server is online");
+  });
 
-    this.#chatIO.write(name, formattedMsg);
-  }
-
-  #onMessage(conversation) {
-    const { sender, receiver, message } = conversation;
-    const formattedMsg = this.#formatMessage(sender, message);
-    this.#chatHistory.addToPersonal(conversation);
-
-    this.#chatIO.write(receiver, formattedMsg);
-  }
-
-  #onDisconnect(name) {
-    this.#users.toggleStatus(name);
-  }
-
-  #logIn(name) {
-    if (!this.#users.isRegisteredUser(name)) {
-      this.#registerUser(name);
-      return;
-    }
-
-    this.#users.toggleStatus(name);
-  }
-
-  #isInvalidAccess(name) {
-    return this.#users.isRegisteredUser(name) && this.#users.isOnline(name);
-  }
-
-  #getPersonalChatHistory({ sender, receiver }) {
-    const chatHistory = this.#chatHistory.getPersonal(sender, receiver);
-    this.#chatIO.write(sender, JSON.stringify(chatHistory));
-  }
-
-  #handleRequest(request) {
-    const { type, data } = request;
-
-    switch (type) {
-      case "log-in": {
-        this.#logIn(data.name);
-        break;
-      }
-
-      case "personal-chat": {
-        this.#onMessage(data);
-        break;
-      }
-
-      case "personal-chat-history": {
-        this.#getPersonalChatHistory(data);
-      }
-    }
-  }
-
-  start() {
-    this.#chatIO.buildConnection({
-      handleRequest: (request) => this.#handleRequest(request),
-      isInvalidAccess: (name) => this.#isInvalidAccess(name),
-      onDisconnect: (name) => this.#onDisconnect(name)
-    });
-  }
-}
-
-class ChatIO {
-  #server;
-  #sockets;
-
-  constructor(server) {
-    this.#server = server;
-    this.#sockets = {};
-  }
-
-  buildConnection({ handleRequest, isInvalidAccess, onDisconnect }) {
-    this.#server.on("connection", (socket) => {
-      socket.setEncoding("utf-8");
-      socket.on("data", (data) => {
-        const request = JSON.parse(data);
-
-        if (request.type === "log-in") {
-          const { name } = request.data;
-
-          if (isInvalidAccess(name)) {
-            socket.end();
-            return;
-          }
-
-          socket.on("end", () => {
-            console.log(`>> Disconnected: ${name}`);
-            onDisconnect(name);
-          });
-
-          this.#sockets[name] = socket;
-        }
-
-        handleRequest(request);
-      });
-    });
-  }
-
-  write(receiver, message) {
-    this.#sockets[receiver].write(message);
-  }
-}
-
-module.exports = {
-  ChatIO,
-  ChatService,
 };
+
+main();

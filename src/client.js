@@ -26,15 +26,28 @@ const fetchChatHistory = (sender, receiver, client) => {
 };
 
 const isPersonalChat = (data) => data.startsWith("to:");
+const isCreateRoom = (data) => data.startsWith("create-room:");
 
 const raiseRequest = (data, client, name) => {
+
+  //darwana switch case
   switch (true) {
+    // extract into function
     case isPersonalChat(data): {
       receiver = data.split(":").at(1);
       currentState.type = 'personal-chat';
       currentState.receiver = receiver;
       console.clear();
       fetchChatHistory(name, receiver, client);
+      break;
+    }
+
+    case isCreateRoom(data): {
+      const roomName = data.split(":").at(1);
+      currentState.type = 'create-room';
+      currentState.receiver = roomName;
+      const request = { type: currentState.type, data: { ownerName: name, roomName } }
+      sendRequest(request, client);
       break;
     }
 
